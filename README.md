@@ -4,7 +4,7 @@
 
 1. **Clone the repository**:
     ```bash
-    git clone https://github.com/BryanVeraDev/easycredit.git
+    git clone https://github.com/BryanVeraDev/ucredit.git
 
 2. **Change directory *to ucredit***:
     ```bash
