@@ -1,4 +1,4 @@
-# ucredit 💳
+# ucredit
 
 ## Steps for local installation
 
@@ -10,27 +10,23 @@
     ```bash
     cd ucredit
 
-3. **Switch to branch *`feature/scaffolding`***:
-    ```bash
-    git checkout feature/scaffolding
-
-4. **Create virtual environment**:
+3. **Create virtual environment**:
     ```bash
     py -m venv venv
 
-5. **Activate virtual environment**:
+4. **Activate virtual environment**:
     ```bash
     .\\venv\\Scripts\\activate.bat
 
-6. **Install *Django***:
+5. **Install dependencies**:
     ```bash
-    pip install django
+    pip install -r requirements.txt
 
-7. **Apply migrations to database**:
+6. **Apply migrations to database**:
     ```bash
     py .\\manage.py migrate
 
-8. **Run the server**:
+7. **Run the server**:
     ```bash
     py .\\manage.py runserver
 
