@@ -2,7 +2,7 @@ from django.db import models
 from status.models import StatusGeneral
 
 class Product(models.Model):
-    id = models.CharField(max_length=12, primary_key=True)
+    id = models.AutoField(primary_key=True) 
     name = models.CharField(max_length=30)
     description = models.CharField(max_length=50)
     price = models.DecimalField(max_digits=11, decimal_places=2)
