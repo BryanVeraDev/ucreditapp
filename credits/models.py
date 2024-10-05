@@ -1,9 +1,17 @@
 from django.db import models
-from status.models import StatusCredit, StatusPayment
 from users.models import Client
 from products.models import Product
 
 class Credit(models.Model):
+    
+    CREDIT_STATUS = {
+        "pending":"Pending",
+        "approved":"Approved",
+        "rejected":"Rejected",
+        "paid":"Paid",
+        "default": "Default"
+    }
+    
     id = models.AutoField(primary_key=True)
     description = models.CharField(max_length=50)
     total_amount = models.DecimalField(max_digits=11, decimal_places=2)
@@ -12,36 +20,39 @@ class Credit(models.Model):
     start_date = models.DateField()
     end_date = models.DateField()
     penalty_rate = models.DecimalField(max_digits=4, decimal_places=2)
-    interest_rate = models.ForeignKey('InterestRate', on_delete=models.CASCADE)    
-    status = models.ForeignKey(StatusCredit, on_delete=models.CASCADE)
+    status = models.CharField(max_length=15, choices=CREDIT_STATUS)
+    interest_rate = models.ForeignKey('InterestRate', on_delete=models.RESTRICT)    
+    client = models.ForeignKey(Client, on_delete=models.RESTRICT) 
+    products = models.ManyToManyField(Product, through='ClientCreditProduct', through_fields=('id_credit', 'id_product'))
     
     def __str__(self) -> str:
         return self.description
 
 class Payment(models.Model):
+    
+    PAYMENT_STATUS = {
+        "pending":"Pending",
+        "completed":"Completed"
+    }
+    
     id = models.AutoField(primary_key=True)
     payment_amount = models.DecimalField(max_digits=11, decimal_places=2)
     payment_date = models.DateField()
     due_date = models.DateField()
-    status = models.ForeignKey(StatusPayment, on_delete=models.CASCADE)
-    credit = models.ForeignKey(Credit, on_delete=models.CASCADE)
+    status = models.CharField(max_length=15, choices=PAYMENT_STATUS)
+    credit = models.ForeignKey(Credit, on_delete=models.RESTRICT)
     
     def __str__(self) -> str:
         return f'{self.id} - {self.credit.description}'
 
 class ClientCreditProduct(models.Model):
-    id_client = models.ForeignKey(Client, on_delete=models.CASCADE)
-    id_product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    id_credit = models.ForeignKey(Credit, on_delete=models.CASCADE)
+    id = models.AutoField(primary_key=True)
+    id_credit = models.ForeignKey(Credit, on_delete=models.RESTRICT)
+    id_product = models.ForeignKey(Product, on_delete=models.RESTRICT)
     quantity = models.SmallIntegerField()
-    
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['id_client',  'id_product', 'id_credit'], name='unique_client_credit_product')
-        ]
-        
+  
     def __str__(self) -> str:
-        return f'{self.id_client.name} - {self.id_credit}'
+        return f'{self.id_credit} - {self.id_product}'
     
 class InterestRate(models.Model):
     id = models.SmallAutoField(primary_key=True)
