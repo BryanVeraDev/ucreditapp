@@ -1,5 +1,5 @@
 from django.db import models
-from users.models import Client
+from clients.models import Client
 from products.models import Product
 
 class Credit(models.Model):
@@ -26,7 +26,7 @@ class Credit(models.Model):
     products = models.ManyToManyField(Product, through='ClientCreditProduct', through_fields=('id_credit', 'id_product'))
     
     def __str__(self) -> str:
-        return self.description
+        return f'{self.description} - {self.client}'
 
 class Payment(models.Model):
     
@@ -52,7 +52,7 @@ class ClientCreditProduct(models.Model):
     quantity = models.SmallIntegerField()
   
     def __str__(self) -> str:
-        return f'{self.id_credit} - {self.id_product}'
+        return f'{self.id_credit} - {self.id_product} - Quantity: {self.quantity}'
     
 class InterestRate(models.Model):
     id = models.SmallAutoField(primary_key=True)
