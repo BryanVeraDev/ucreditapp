@@ -7,6 +7,10 @@ from products.serializers import ProductInfoSerializer
 from clients.models import Client
 from clients.serializers import ClientInfoSerializer
 
+from dateutil.relativedelta import relativedelta
+
+from django.utils import timezone
+
 class PaymentSerializer(serializers.ModelSerializer):
     credit = serializers.PrimaryKeyRelatedField(queryset=Credit.objects.all(), write_only=True)
     
@@ -20,6 +24,21 @@ class PaymentSerializer(serializers.ModelSerializer):
             'status', 
             'credit'
             ]
+        
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+            
+        instance.save()
+        
+        credit = instance.credit
+        
+        if credit.payment_set.filter(status="completed").count() == credit.payment_set.count():
+            credit.status = "paid"
+            credit.save()
+        
+        return instance
+        
         
 class InterestRateSerializer(serializers.ModelSerializer):   
     
@@ -54,6 +73,8 @@ class CreditSerializer(serializers.ModelSerializer):
     interest_rate = serializers.PrimaryKeyRelatedField(queryset=InterestRate.objects.all(), write_only=True)
     interest_rate_info = InterestRateInfoSerializer(source='interest_rate', read_only=True)
     
+    payments = PaymentSerializer(source="payment_set", many=True, read_only=True)
+    
     class Meta:
         model = Credit
         fields = [
@@ -70,9 +91,34 @@ class CreditSerializer(serializers.ModelSerializer):
             'interest_rate_info',
             'client', 
             'client_info', 
-            'products']
+            'products',
+            'payments'
+            ]
     
+    #Validates that a product exists
+    def validate_products(self, value):
+        if not value:
+            raise serializers.ValidationError("There must be at least one product.")
+        return value
     
+    #Updates the product in the credit
+    def _update_credit_products(self, instance, validated_data):
+        product_data = validated_data.pop('clientcreditproduct_set', [])
+       
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+                
+        new_product_ids = [product['id_product'].id for product in product_data]
+        
+        #Update products in a credit
+        #instance.clientcreditproduct_set.exclude(id_product__in=new_product_ids).delete()
+                
+        for product in product_data:
+            ClientCreditProduct.objects.update_or_create(id_credit=instance, id_product=product['id_product'].id, defaults=product)
+                
+        instance.total_amount = instance.calculate_total_amount()
+            
+        
     def create(self, validated_data):
         products_data = validated_data.pop('clientcreditproduct_set')
         credit = Credit.objects.create(**validated_data)
@@ -80,37 +126,47 @@ class CreditSerializer(serializers.ModelSerializer):
         for product_data in products_data:
             ClientCreditProduct.objects.create(id_credit=credit, **product_data)
             
+        credit.total_amount = credit.calculate_total_amount()
+        
+        credit.save()
+            
         return credit
     
-    
-    
     def update(self, instance, validated_data):
-        product_data = validated_data.pop('clientcreditproduct_set', [])
+        status = validated_data.pop('status', [])
+        instance_status = instance.status
         
-        """"
+        if instance_status == "pending":
+            if status == "approved":
+                
+                if instance.payment_set.count() == 0:
+                    start_date = timezone.now().date()
+                    no_installment = instance.no_installment
+                    monthly_amount = instance.total_amount / no_installment
+                    
+                    for i in range(no_installment):
+                        payment_date = start_date + relativedelta(months=i)
+                        
+                        Payment.objects.create(credit=instance, payment_date=payment_date, due_date=payment_date + relativedelta(weeks=1), payment_amount=monthly_amount)
+                    
+                    instance.start_date = start_date
+                    instance.end_date = instance.start_date + relativedelta(months=instance.no_installment-1)
+                    
+                    self._update_credit_products(instance, validated_data)
+                
+            elif status == "rejected": 
+                instance.status = "rejected"
+            
+            elif status == "pending":
+                self._update_credit_products(instance, validated_data)
+                
+                        
+        instance.save()
+                 
+        """
         Extended form
         instance.description = validated_data.get('description', instance.description)
-        instance.total_amount = validated_data.get('total_amount', instance.total_amount)
-        instance.no_installment = validated_data.get('no_installment', instance.no_installment)
-        instance.start_date = validated_data.get('start_date', instance.start_date)
-        instance.end_date = validated_data.get('end_date', instance.end_date)
-        instance.penalty_rate = validated_data.get('penalty_rate', instance.penalty_rate)
-        instance.status = validated_data.get('status', instance.status)
-        instance.interest_rate = validated_data.get('interest_rate', instance.interest_rate)
-        instance.client = validated_data.get('client', instance.client)
         """
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-       
-        instance.save()
-        
-        new_product_ids = [product['id_product'].id for product in product_data]
-        
-        instance.clientcreditproduct_set.exclude(id_product__in=new_product_ids).delete()
-        
-        for product in product_data:
-            ClientCreditProduct.objects.update_or_create(id_credit=instance, id_product=product['id_product'].id, defaults=product)
-       
         return instance
         
 
