@@ -6,7 +6,16 @@ class ProductTypeSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = ProductType
-        fields = ['id', 'description']
+        fields = [
+            'id', 
+            'description'
+            ]
+
+class ProductTypeInfoSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = ProductType
+        fields = ['description']
         
 class ProductSerializer(serializers.ModelSerializer):
     
@@ -23,7 +32,31 @@ class ProductSerializer(serializers.ModelSerializer):
     ---
     """
     
+    product_type = serializers.PrimaryKeyRelatedField(queryset=ProductType.objects.all(), write_only=True)
+    product_type_info = ProductTypeInfoSerializer(source='product_type', read_only=True)
+    
     class Meta:
         model = Product
-        fields = ['id', 'name', 'description', 'price', 'is_active', 'product_type']
-        
+        fields = [
+            'id', 
+            'name', 
+            'description', 
+            'price', 
+            'is_active', 
+            'product_type',
+            'product_type_info'
+            ]
+    
+    """
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        print("Serialized data in GET:", data)  
+        return data
+    """
+    
+
+class ProductInfoSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Product
+        fields = ['name']

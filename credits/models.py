@@ -17,8 +17,8 @@ class Credit(models.Model):
     total_amount = models.DecimalField(max_digits=11, decimal_places=2)
     no_installment = models.SmallIntegerField()
     application_date = models.DateField(auto_now_add=True)
-    start_date = models.DateField()
-    end_date = models.DateField()
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
     penalty_rate = models.DecimalField(max_digits=4, decimal_places=2)
     status = models.CharField(max_length=15, choices=CREDIT_STATUS)
     interest_rate = models.ForeignKey('InterestRate', on_delete=models.RESTRICT)    
@@ -46,10 +46,14 @@ class Payment(models.Model):
         return f'{self.id} - {self.credit.description}'
 
 class ClientCreditProduct(models.Model):
-    id = models.AutoField(primary_key=True)
     id_credit = models.ForeignKey(Credit, on_delete=models.RESTRICT)
     id_product = models.ForeignKey(Product, on_delete=models.RESTRICT)
     quantity = models.SmallIntegerField()
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['id_credit', 'id_product'], name='unique_client_credit_product')
+        ]
   
     def __str__(self) -> str:
         return f'{self.id_credit} - {self.id_product} - Quantity: {self.quantity}'
