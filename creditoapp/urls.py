@@ -22,6 +22,11 @@ from credits.views import CreditViewSet, PaymentViewSet, InterestRateViewSet
 from users.views import UserViewSet
 from clients.views import ClientViewSet
 
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
+
 router = routers.DefaultRouter()
 router.register(r'product-types', ProductTypeViewSet)
 router.register(r'products', ProductViewSet)
@@ -32,6 +37,8 @@ router.register(r'users', UserViewSet)
 router.register(r'clients', ClientViewSet)
 
 urlpatterns = [
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/', include(router.urls)),
     path('api-auth/', include('rest_framework.urls')),
     #path('products/', include('products.urls')),
